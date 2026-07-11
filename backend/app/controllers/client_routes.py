@@ -8,15 +8,24 @@ from app.services.client_service import ClientService
 router = APIRouter(prefix="/api/clients", tags=["clients"])
 
 
-@router.get("/", response_model=list[ClientResponse])
+@router.get("/")
 def list_clients(
     search: str | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     service = ClientService(db)
     if search:
-        return service.search(search)
-    return service.list_all()
+        items, total = service.search_paginated(search, page, page_size)
+    else:
+        items, total = service.list_paginated(page, page_size)
+    return {
+        "items": [ClientResponse.model_validate(c) for c in items],
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
 
 
 @router.get("/{client_id}", response_model=ClientResponse)

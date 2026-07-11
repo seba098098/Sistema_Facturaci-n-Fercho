@@ -35,6 +35,33 @@ class ClientRepository:
             q = q.filter(Client.is_active == True)
         return q.order_by(Client.name).all()
 
+    def count_all(self, active_only: bool = True) -> int:
+        q = self.db.query(Client)
+        if active_only:
+            q = q.filter(Client.is_active == True)
+        return q.count()
+
+    def list_paginated(self, page: int = 1, page_size: int = 10) -> tuple[list[Client], int]:
+        q = self.db.query(Client).filter(Client.is_active == True)
+        total = q.count()
+        items = q.order_by(Client.name).offset((page - 1) * page_size).limit(page_size).all()
+        return items, total
+
+    def search_paginated(self, query: str, page: int = 1, page_size: int = 10) -> tuple[list[Client], int]:
+        term = f"%{query}%"
+        q = self.db.query(Client).filter(
+            Client.is_active == True,
+            or_(
+                Client.name.ilike(term),
+                Client.document_number.ilike(term),
+                Client.email.ilike(term),
+                Client.phone.ilike(term),
+            ),
+        )
+        total = q.count()
+        items = q.order_by(Client.name).offset((page - 1) * page_size).limit(page_size).all()
+        return items, total
+
     def create(self, **kwargs) -> Client:
         client = Client(**kwargs)
         self.db.add(client)

@@ -20,6 +20,12 @@ class ClientService:
     def list_all(self) -> list[Client]:
         return self.repo.list_all()
 
+    def list_paginated(self, page: int = 1, page_size: int = 10) -> tuple[list[Client], int]:
+        return self.repo.list_paginated(page, page_size)
+
+    def search_paginated(self, query: str, page: int = 1, page_size: int = 10) -> tuple[list[Client], int]:
+        return self.repo.search_paginated(query, page, page_size)
+
     def create(self, **kwargs) -> Client:
         existing = self.repo.get_by_document(kwargs.get("document_number", ""))
         if existing:
