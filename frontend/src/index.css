@@ -47,9 +47,9 @@ body {
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* Focus ring utility */
+/* Input defaults */
 @layer base {
-  input:focus, select:focus, textarea:focus {
-    @apply outline-none ring-2 ring-blue-500/20 border-blue-500;
+  input:not([type="radio"]):not([type="checkbox"]), select, textarea {
+    @apply text-gray-900;
   }
 }
