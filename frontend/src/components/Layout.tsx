@@ -82,15 +82,21 @@ export default function Layout() {
         </nav>
 
         <div className="mt-auto border-t border-gray-200 px-5 py-5">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-2">
             <div className="w-6 h-6 bg-primary-600 rounded flex items-center justify-center">
               <Receipt className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="font-bold text-gray-900 text-sm">MuxyGo</span>
           </div>
           <p className="text-xs text-gray-400 mb-3 leading-relaxed">
-            Transformamos ideas en soluciones tecnológicas robustas. Tu socio estratégico para el crecimiento digital.
+            Transformamos ideas en soluciones tecnológicas robustas.
           </p>
+          <div className="flex flex-wrap gap-x-3 gap-y-1 mb-3">
+            <a href="https://muxygo.com" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Inicio</a>
+            <a href="https://muxygo.com/servicios" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Servicios</a>
+            <a href="https://muxygo.com/nosotros" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Nosotros</a>
+            <a href="https://muxygo.com/contacto" target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">Contacto</a>
+          </div>
           <div className="space-y-1.5">
             <a href="mailto:comercial@muxygo.com" className="flex items-center gap-2 text-xs text-gray-500 hover:text-primary-600 transition-colors">
               <Mail className="w-3 h-3" />
