@@ -72,10 +72,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-6">
+    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Datos de la Empresa</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="label-field">Nombre de la empresa</label>
             <input
@@ -147,7 +147,7 @@ export default function SettingsPage() {
 
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Logo</h2>
-        <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden bg-gray-50">
             {logoPreview ? (
               <img
@@ -177,27 +177,26 @@ export default function SettingsPage() {
 
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Numeración</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="label-field">Prefijo</label>
             <input
               value={form.invoice_prefix || ''}
-              onChange={(e) => updateField('invoice_prefix', e.target.value)}
-              className="input-field"
+              readOnly
+              className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
               placeholder="001"
             />
+            <p className="text-xs text-gray-400 mt-1">Se establece al crear la primera factura</p>
           </div>
           <div>
             <label className="label-field">Consecutivo actual</label>
             <input
-              type="number"
+              type="text"
               value={form.invoice_consecutive || 1}
-              onChange={(e) =>
-                updateField('invoice_consecutive', parseInt(e.target.value) || 1)
-              }
-              className="input-field"
-              min="1"
+              readOnly
+              className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
             />
+            <p className="text-xs text-gray-400 mt-1">Se incrementa automáticamente</p>
           </div>
         </div>
       </div>

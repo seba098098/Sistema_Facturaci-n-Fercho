@@ -156,11 +156,11 @@ export default function InvoicePage() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-5xl mx-auto space-y-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
       <div className="card">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Datos del Cliente</h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
           <div>
             <label className="label-field">Tipo de documento</label>
             <select {...register('client_document_type')} className="input-field">
@@ -171,7 +171,7 @@ export default function InvoicePage() {
               ))}
             </select>
           </div>
-          <div className="md:col-span-2 relative">
+          <div className="sm:col-span-2 md:col-span-2 relative">
             <label className="label-field">Número de documento</label>
             <div className="relative">
               <input
@@ -205,7 +205,7 @@ export default function InvoicePage() {
               </div>
             )}
           </div>
-          <div>
+          <div className="sm:col-span-2 md:col-span-1">
             <label className="label-field">Nombre</label>
             <input
               {...register('client_name', { required: true })}
@@ -215,7 +215,7 @@ export default function InvoicePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className="label-field">Dirección</label>
             <input {...register('client_address')} className="input-field" placeholder="Dirección" />
@@ -237,12 +237,12 @@ export default function InvoicePage() {
       </div>
 
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Productos / Servicios</h2>
           <button
             type="button"
             onClick={() => append({ quantity: 1, description: '', unit_price: 0 })}
-            className="btn-primary flex items-center gap-2 text-sm"
+            className="btn-primary flex items-center justify-center gap-2 text-sm"
           >
             <Plus className="w-4 h-4" />
             Agregar
@@ -250,9 +250,9 @@ export default function InvoicePage() {
         </div>
 
         <div className="space-y-3">
-          <div className="grid grid-cols-12 gap-3 text-sm font-medium text-gray-500 px-1">
-            <div className="col-span-2 md:col-span-1">Cant.</div>
-            <div className="col-span-5 md:col-span-6">Descripción</div>
+          <div className="hidden md:grid grid-cols-12 gap-3 text-sm font-medium text-gray-500 px-1">
+            <div className="col-span-1">Cant.</div>
+            <div className="col-span-6">Descripción</div>
             <div className="col-span-2">V. Unitario</div>
             <div className="col-span-2 text-right">Total</div>
             <div className="col-span-1"></div>
@@ -262,53 +262,64 @@ export default function InvoicePage() {
             const itemTotal =
               (items[index]?.quantity || 0) * (items[index]?.unit_price || 0)
             return (
-              <div key={field.id} className="grid grid-cols-12 gap-3 items-center">
-                <div className="col-span-2 md:col-span-1">
-                  <input
-                    type="number"
-                    min="1"
-                    {...register(`items.${index}.quantity`, {
-                      valueAsNumber: true,
-                      min: 1,
-                    })}
-                    className="input-field text-center"
-                  />
-                </div>
-                <div className="col-span-5 md:col-span-6">
-                  <input
-                    {...register(`items.${index}.description`, { required: true })}
-                    className="input-field"
-                    placeholder="Descripción del producto/servicio"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Controller
-                    control={control}
-                    name={`items.${index}.unit_price`}
-                    rules={{ min: 0 }}
-                    render={({ field }) => (
-                      <FormattedNumberInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        className="input-field text-right"
-                        placeholder="0"
-                      />
+              <div
+                key={field.id}
+                className="border border-gray-200 rounded-lg p-3 md:border-0 md:p-0 md:rounded-none md:border-b md:last:border-b-0 md:border-gray-100"
+              >
+                <div className="md:grid md:grid-cols-12 md:gap-3 md:items-center space-y-2 md:space-y-0">
+                  <div className="md:col-span-1">
+                    <label className="label-field md:hidden">Cant.</label>
+                    <input
+                      type="number"
+                      min="1"
+                      {...register(`items.${index}.quantity`, {
+                        valueAsNumber: true,
+                        min: 1,
+                      })}
+                      className="input-field text-center"
+                    />
+                  </div>
+                  <div className="md:col-span-6">
+                    <label className="label-field md:hidden">Descripción</label>
+                    <input
+                      {...register(`items.${index}.description`, { required: true })}
+                      className="input-field"
+                      placeholder="Descripción del producto/servicio"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label-field md:hidden">V. Unitario</label>
+                    <Controller
+                      control={control}
+                      name={`items.${index}.unit_price`}
+                      rules={{ min: 0 }}
+                      render={({ field }) => (
+                        <FormattedNumberInput
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="input-field text-right md:text-right"
+                          placeholder="0"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div className="md:col-span-2 flex items-center justify-between md:justify-end">
+                    <span className="text-sm text-gray-500 md:hidden">Total:</span>
+                    <span className="font-medium text-gray-900 pr-1">
+                      {formatCurrency(itemTotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-end md:justify-center">
+                    {fields.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => remove(index)}
+                        className="text-red-400 hover:text-red-600 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     )}
-                  />
-                </div>
-                <div className="col-span-2 text-right font-medium text-gray-900 pr-1">
-                  {formatCurrency(itemTotal)}
-                </div>
-                <div className="col-span-1 flex justify-center">
-                  {fields.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => remove(index)}
-                      className="text-red-400 hover:text-red-600 p-1"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
+                  </div>
                 </div>
               </div>
             )
@@ -316,14 +327,14 @@ export default function InvoicePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="card lg:col-span-2">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Método de Pago</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {PAYMENT_METHODS.map((method) => (
               <label
                 key={method}
-                className={`flex items-center justify-center p-3 rounded-lg border-2 cursor-pointer transition-all text-sm font-medium ${
+                className={`flex items-center justify-center p-2.5 sm:p-3 rounded-lg border-2 cursor-pointer transition-all text-xs sm:text-sm font-medium ${
                   paymentMethod === method
                     ? 'border-primary-500 bg-primary-50 text-primary-700'
                     : 'border-gray-200 hover:border-gray-300 text-gray-600'
@@ -341,7 +352,7 @@ export default function InvoicePage() {
           </div>
 
           {paymentMethod === 'EFECTIVO' && (
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4">
               <div>
                 <label className="label-field">Efectivo recibido</label>
                 <Controller

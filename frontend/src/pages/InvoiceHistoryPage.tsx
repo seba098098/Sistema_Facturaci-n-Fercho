@@ -10,6 +10,8 @@ import {
   Eye,
   ChevronLeft,
   ChevronRight,
+  Calendar,
+  CreditCard,
 } from 'lucide-react'
 import api from '../services/api'
 import { InvoiceListItem, InvoiceListResponse } from '../types'
@@ -67,8 +69,8 @@ export default function InvoiceHistoryPage() {
   return (
     <div className="space-y-4">
       <div className="card">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="relative md:col-span-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div className="relative sm:col-span-2 md:col-span-1">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
             <input
               value={search}
@@ -113,7 +115,8 @@ export default function InvoiceHistoryPage() {
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -199,6 +202,84 @@ export default function InvoiceHistoryPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden">
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Cargando...</div>
+          ) : invoices.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No se encontraron facturas</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {invoices.map((inv) => (
+                <div key={inv.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <Link
+                        to={`/facturas/${inv.id}`}
+                        className="font-semibold text-primary-600 hover:underline"
+                      >
+                        {inv.invoice_number}
+                      </Link>
+                      <p className="text-sm text-gray-700 mt-0.5">{inv.client_name}</p>
+                      <p className="text-xs text-gray-400">{inv.client_document}</p>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900">
+                      {formatCurrency(inv.total)}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <CreditCard className="w-3 h-3" />
+                      {inv.payment_method}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {formatDateTime(inv.created_at)}
+                    </span>
+                    {inv.email_sent ? (
+                      <span className="text-emerald-600 font-medium">Enviado</span>
+                    ) : (
+                      <span className="text-gray-400">Sin correo</span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1 pt-1 border-t border-gray-100">
+                    <Link
+                      to={`/facturas/${inv.id}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      Ver
+                    </Link>
+                    <a
+                      href={`/api/invoices/${inv.id}/pdf`}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      PDF
+                    </a>
+                    <button
+                      onClick={() => duplicateMutation.mutate(inv.id)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      Duplicar
+                    </button>
+                    <button
+                      onClick={() => resendMutation.mutate(inv.id)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <Mail className="w-3.5 h-3.5" />
+                      Correo
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {totalPages > 1 && (

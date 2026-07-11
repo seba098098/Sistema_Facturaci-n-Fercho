@@ -12,7 +12,6 @@ import {
 import api from '../services/api'
 import { Client, DOCUMENT_TYPES } from '../types'
 import { useDebounce } from '../hooks/useDebounce'
-import { formatDateTime } from '../utils/format'
 
 export default function ClientsPage() {
   const queryClient = useQueryClient()
@@ -114,7 +113,7 @@ export default function ClientsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
@@ -124,14 +123,15 @@ export default function ClientsPage() {
             placeholder="Buscar clientes..."
           />
         </div>
-        <button onClick={openCreate} className="btn-primary flex items-center gap-2">
+        <button onClick={openCreate} className="btn-primary flex items-center justify-center gap-2">
           <UserPlus className="w-4 h-4" />
           Nuevo Cliente
         </button>
       </div>
 
       <div className="card p-0 overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -192,12 +192,59 @@ export default function ClientsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile cards */}
+        <div className="md:hidden">
+          {isLoading ? (
+            <div className="text-center py-8 text-gray-500">Cargando...</div>
+          ) : !clients || clients.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No se encontraron clientes</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {clients.map((client: Client) => (
+                <div key={client.id} className="p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-gray-900 truncate">{client.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {client.document_type}: {client.document_number}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                      <button
+                        onClick={() => openEdit(client)}
+                        className="p-2 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm('¿Está seguro de eliminar este cliente?')) {
+                            deleteMutation.mutate(client.id)
+                          }
+                        }}
+                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                    {client.address && <span>{client.address}</span>}
+                    {client.phone && <span>{client.phone}</span>}
+                    {client.email && <span>{client.email}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 sm:p-6 border-b border-gray-200">
               <h3 className="text-lg font-semibold">
                 {editingClient ? 'Editar Cliente' : 'Nuevo Cliente'}
               </h3>
@@ -205,7 +252,7 @@ export default function ClientsPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-4">
               <div>
                 <label className="label-field">Nombre *</label>
                 <input
@@ -248,7 +295,7 @@ export default function ClientsPage() {
                   className="input-field"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label-field">Teléfono</label>
                   <input
@@ -267,7 +314,7 @@ export default function ClientsPage() {
                   />
                 </div>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button type="button" onClick={closeModal} className="btn-secondary flex-1">
                   Cancelar
                 </button>
