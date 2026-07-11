@@ -49,6 +49,18 @@ def create_app() -> FastAPI:
                 current_logo = settings_repo.get("logo_path")
                 if not current_logo:
                     settings_repo.set("logo_path", logo_in_data)
+
+            env_smtp = {
+                "smtp_host": settings.SMTP_HOST,
+                "smtp_port": str(settings.SMTP_PORT),
+                "smtp_user": settings.SMTP_USER,
+                "smtp_password": settings.SMTP_PASSWORD,
+                "smtp_from": settings.SMTP_FROM,
+                "smtp_use_tls": str(settings.SMTP_TLS).lower(),
+            }
+            for key, value in env_smtp.items():
+                if value:
+                    settings_repo.set(key, value)
         finally:
             db.close()
 

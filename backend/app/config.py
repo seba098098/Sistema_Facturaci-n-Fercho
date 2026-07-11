@@ -1,8 +1,14 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=os.path.join(os.path.dirname(__file__), "..", "..", ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
     APP_NAME: str = "Sistema de Facturación POS"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
@@ -20,7 +26,8 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
     SMTP_FROM: str = ""
-    SMTP_USE_TLS: bool = True
+    SMTP_FROM_NAME: str = ""
+    SMTP_TLS: bool = True
 
     def model_post_init(self, __context) -> None:
         self.DB_PATH = os.path.join(self.DATA_DIR, "facturacion.db")

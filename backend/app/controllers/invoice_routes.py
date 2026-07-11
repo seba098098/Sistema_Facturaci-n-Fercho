@@ -151,6 +151,8 @@ def resend_email(invoice_id: int, db: Session = Depends(get_db)):
         return {"message": "Correo enviado exitosamente"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al enviar correo: {str(e)}")
 
 
 @router.post("/{invoice_id}/duplicate", response_model=dict, status_code=201)
