@@ -1,13 +1,17 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Plus, Trash2, Search, FileText, Loader2 } from 'lucide-react'
+import { Plus, Trash2, Search, FileText, Loader2, User, ShoppingBag } from 'lucide-react'
 import api from '../services/api'
 import { Client, PAYMENT_METHODS, DOCUMENT_TYPES } from '../types'
 import { formatCurrency } from '../utils/format'
 import { useDebounce } from '../hooks/useDebounce'
 import FormattedNumberInput from '../components/FormattedNumberInput'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+import { Card, CardTitle } from '../components/ui/Card'
+import PageHeader from '../components/ui/PageHeader'
 
 interface InvoiceForm {
   client_document_type: string
@@ -51,18 +55,11 @@ export default function InvoicePage() {
     },
   })
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'items',
-  })
-
+  const { fields, append, remove } = useFieldArray({ control, name: 'items' })
   const items = watch('items')
   const paymentMethod = watch('payment_method')
 
-  const subtotal = items.reduce(
-    (sum, item) => sum + (item.quantity || 0) * (item.unit_price || 0),
-    0
-  )
+  const subtotal = items.reduce((sum, item) => sum + (item.quantity || 0) * (item.unit_price || 0), 0)
   const discount = watch('discount') || 0
   const total = subtotal - discount
 
@@ -70,8 +67,7 @@ export default function InvoicePage() {
 
   const { data: clients } = useQuery({
     queryKey: ['clients-search', debouncedSearch],
-    queryFn: () =>
-      api.get(`/clients/?search=${encodeURIComponent(debouncedSearch)}`).then((r) => r.data),
+    queryFn: () => api.get(`/clients/?search=${encodeURIComponent(debouncedSearch)}`).then((r) => r.data.items || r.data),
     enabled: debouncedSearch.length >= 2,
   })
 
@@ -98,17 +94,13 @@ export default function InvoicePage() {
     if (!doc || selectedClient) return
     try {
       const res = await api.get(`/clients/document/${doc}`)
-      if (res.data && res.data.id) {
-        selectClient(res.data)
-      }
-    } catch {
-      // Client doesn't exist, allow manual entry
-    }
+      if (res.data && res.data.id) selectClient(res.data)
+    } catch {}
   }
 
   const createMutation = useMutation({
     mutationFn: (data: InvoiceForm) => {
-      const payload: any = {
+      return api.post('/invoices/', {
         client_document_type: data.client_document_type,
         client_document: data.client_document,
         client_name: data.client_name,
@@ -123,8 +115,7 @@ export default function InvoicePage() {
           description: item.description,
           unit_price: item.unit_price,
         })),
-      }
-      return api.post('/invoices/', payload)
+      })
     },
     onSuccess: (response) => {
       toast.success(`Factura ${response.data.invoice_number} generada`)
@@ -138,184 +129,120 @@ export default function InvoicePage() {
   })
 
   const onSubmit = (data: InvoiceForm) => {
-    if (!data.client_document) {
-      toast.error('Ingrese el documento del cliente')
-      return
-    }
-    if (data.items.length === 0) {
-      toast.error('Agregue al menos un producto')
-      return
-    }
+    if (!data.client_document) { toast.error('Ingrese el documento del cliente'); return }
+    if (data.items.length === 0) { toast.error('Agregue al menos un producto'); return }
     for (const item of data.items) {
       if (!item.description || item.quantity <= 0 || item.unit_price <= 0) {
-        toast.error('Complete todos los campos de los productos')
-        return
+        toast.error('Complete todos los campos de los productos'); return
       }
     }
     createMutation.mutate(data)
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Datos del Cliente</h2>
+    <form onSubmit={handleSubmit(onSubmit)} className="max-w-6xl mx-auto space-y-5">
+      <PageHeader
+        title="Nueva Factura"
+        description="Crea una factura para tu cliente"
+      />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-4">
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+            <User className="w-4 h-4 text-blue-600" />
+          </div>
+          <CardTitle>Datos del Cliente</CardTitle>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div>
-            <label className="label-field">Tipo de documento</label>
-            <select {...register('client_document_type')} className="input-field">
-              {DOCUMENT_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipo doc.</label>
+            <select {...register('client_document_type')} className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+              {DOCUMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
-          <div className="sm:col-span-2 md:col-span-2 relative">
-            <label className="label-field">Número de documento</label>
-            <div className="relative">
-              <input
-                {...register('client_document')}
-                className="input-field pr-10"
-                placeholder="Buscar o registrar..."
-                onChange={(e) => {
-                  setClientSearch(e.target.value)
-                  setSelectedClient(null)
-                  setValue('client_document', e.target.value)
-                }}
-                onBlur={handleDocumentBlur}
-              />
-              <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
-            </div>
+          <div className="relative">
+            <Input
+              label="N° Documento"
+              {...register('client_document')}
+              placeholder="Buscar o registrar..."
+              icon={<Search className="w-4 h-4" />}
+              onChange={(e) => { setClientSearch(e.target.value); setSelectedClient(null); setValue('client_document', e.target.value) }}
+              onBlur={handleDocumentBlur}
+            />
             {showClientDropdown && clients && clients.length > 0 && (
-              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-auto">
                 {clients.map((client: Client) => (
-                  <button
-                    key={client.id}
-                    type="button"
-                    className="w-full text-left px-4 py-2 hover:bg-primary-50 border-b border-gray-100 last:border-0"
-                    onMouseDown={() => selectClient(client)}
-                  >
-                    <span className="font-medium">{client.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">
-                      {client.document_type}: {client.document_number}
-                    </span>
+                  <button key={client.id} type="button" className="w-full text-left px-4 py-2.5 hover:bg-blue-50 border-b border-gray-50 last:border-0 transition-colors" onMouseDown={() => selectClient(client)}>
+                    <span className="font-medium text-sm">{client.name}</span>
+                    <span className="text-xs text-gray-400 ml-2">{client.document_type}: {client.document_number}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-          <div className="sm:col-span-2 md:col-span-1">
-            <label className="label-field">Nombre</label>
-            <input
-              {...register('client_name', { required: true })}
-              className="input-field"
-              placeholder="Nombre del cliente"
-            />
-          </div>
+          <Input label="Nombre" {...register('client_name', { required: true })} placeholder="Nombre del cliente" />
+          <Input label="Dirección" {...register('client_address')} placeholder="Dirección" />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-          <div>
-            <label className="label-field">Dirección</label>
-            <input {...register('client_address')} className="input-field" placeholder="Dirección" />
-          </div>
-          <div>
-            <label className="label-field">Teléfono (opcional)</label>
-            <input {...register('client_phone')} className="input-field" placeholder="Teléfono" />
-          </div>
-          <div>
-            <label className="label-field">Correo electrónico (opcional)</label>
-            <input
-              {...register('client_email')}
-              className="input-field"
-              type="email"
-              placeholder="correo@ejemplo.com"
-            />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Input label="Teléfono" {...register('client_phone')} placeholder="Opcional" />
+          <Input label="Correo" {...register('client_email')} type="email" placeholder="correo@ejemplo.com" />
         </div>
-      </div>
+      </Card>
 
-      <div className="card">
+      <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Productos / Servicios</h2>
-          <button
-            type="button"
-            onClick={() => append({ quantity: 1, description: '', unit_price: 0 })}
-            className="btn-primary flex items-center justify-center gap-2 text-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar
-          </button>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4 text-blue-600" />
+            </div>
+            <CardTitle>Productos / Servicios</CardTitle>
+          </div>
+          <Button type="button" variant="primary" size="sm" icon={<Plus className="w-4 h-4" />} onClick={() => append({ quantity: 1, description: '', unit_price: 0 })}>
+            Agregar línea
+          </Button>
         </div>
 
-        <div className="space-y-3">
-          <div className="hidden md:grid grid-cols-12 gap-3 text-sm font-medium text-gray-500 px-1">
+        <div className="space-y-2">
+          <div className="hidden lg:grid grid-cols-12 gap-3 text-xs font-medium text-gray-500 uppercase tracking-wider px-1">
             <div className="col-span-1">Cant.</div>
-            <div className="col-span-6">Descripción</div>
-            <div className="col-span-2">V. Unitario</div>
-            <div className="col-span-2 text-right">Total</div>
+            <div className="col-span-5">Descripción</div>
+            <div className="col-span-2 text-right">V. Unitario</div>
+            <div className="col-span-3 text-right">Total</div>
             <div className="col-span-1"></div>
           </div>
 
           {fields.map((field, index) => {
-            const itemTotal =
-              (items[index]?.quantity || 0) * (items[index]?.unit_price || 0)
+            const itemTotal = (items[index]?.quantity || 0) * (items[index]?.unit_price || 0)
             return (
-              <div
-                key={field.id}
-                className="border border-gray-200 rounded-lg p-3 md:border-0 md:p-0 md:rounded-none md:border-b md:last:border-b-0 md:border-gray-100"
-              >
-                <div className="md:grid md:grid-cols-12 md:gap-3 md:items-center space-y-2 md:space-y-0">
-                  <div className="md:col-span-1">
-                    <label className="label-field md:hidden">Cant.</label>
-                    <input
-                      type="number"
-                      min="1"
-                      {...register(`items.${index}.quantity`, {
-                        valueAsNumber: true,
-                        min: 1,
-                      })}
-                      className="input-field text-center"
-                    />
+              <div key={field.id} className="border border-gray-200 rounded-xl p-3 lg:border-0 lg:p-0 lg:rounded-none lg:border-b lg:last:border-b-0 lg:border-gray-100 hover:bg-gray-50/50 transition-colors">
+                <div className="lg:grid lg:grid-cols-12 lg:gap-3 lg:items-center space-y-2 lg:space-y-0">
+                  <div className="lg:col-span-1">
+                    <label className="text-xs text-gray-500 lg:hidden mb-1 block">Cant.</label>
+                    <input type="number" min="1" {...register(`items.${index}.quantity`, { valueAsNumber: true, min: 1 })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" />
                   </div>
-                  <div className="md:col-span-6">
-                    <label className="label-field md:hidden">Descripción</label>
-                    <input
-                      {...register(`items.${index}.description`, { required: true })}
-                      className="input-field"
-                      placeholder="Descripción del producto/servicio"
-                    />
+                  <div className="lg:col-span-5">
+                    <label className="text-xs text-gray-500 lg:hidden mb-1 block">Descripción</label>
+                    <input {...register(`items.${index}.description`, { required: true })}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="Descripción del producto/servicio" />
                   </div>
-                  <div className="md:col-span-2">
-                    <label className="label-field md:hidden">V. Unitario</label>
-                    <Controller
-                      control={control}
-                      name={`items.${index}.unit_price`}
-                      rules={{ min: 0 }}
+                  <div className="lg:col-span-2">
+                    <label className="text-xs text-gray-500 lg:hidden mb-1 block">V. Unitario</label>
+                    <Controller control={control} name={`items.${index}.unit_price`} rules={{ min: 0 }}
                       render={({ field }) => (
-                        <FormattedNumberInput
-                          value={field.value}
-                          onChange={field.onChange}
-                          className="input-field text-right md:text-right"
-                          placeholder="0"
-                        />
-                      )}
-                    />
+                        <FormattedNumberInput value={field.value} onChange={field.onChange}
+                          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500" placeholder="0" />
+                      )} />
                   </div>
-                  <div className="md:col-span-2 flex items-center justify-between md:justify-end">
-                    <span className="text-sm text-gray-500 md:hidden">Total:</span>
-                    <span className="font-medium text-gray-900 pr-1">
-                      {formatCurrency(itemTotal)}
-                    </span>
+                  <div className="lg:col-span-3 flex items-center justify-between lg:justify-end">
+                    <span className="text-xs text-gray-500 lg:hidden">Subtotal:</span>
+                    <span className="text-sm font-semibold text-gray-900 pr-1">{formatCurrency(itemTotal)}</span>
                   </div>
-                  <div className="flex justify-end md:justify-center">
+                  <div className="flex justify-end lg:justify-center">
                     {fields.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => remove(index)}
-                        className="text-red-400 hover:text-red-600 p-1"
-                      >
+                      <button type="button" onClick={() => remove(index)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
@@ -325,111 +252,67 @@ export default function InvoicePage() {
             )
           })}
         </div>
-      </div>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="card lg:col-span-2">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Método de Pago</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Card className="lg:col-span-2">
+          <CardTitle className="mb-4">Método de Pago</CardTitle>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {PAYMENT_METHODS.map((method) => (
-              <label
-                key={method}
-                className={`flex items-center justify-center p-2.5 sm:p-3 rounded-lg border-2 cursor-pointer transition-all text-xs sm:text-sm font-medium ${
-                  paymentMethod === method
-                    ? 'border-primary-500 bg-primary-50 text-primary-700'
-                    : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                }`}
-              >
-                <input
-                  type="radio"
-                  value={method}
-                  {...register('payment_method')}
-                  className="sr-only"
-                />
+              <label key={method} className={`flex items-center justify-center p-3 rounded-xl border-2 cursor-pointer transition-all text-xs font-medium ${
+                paymentMethod === method
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-gray-200 hover:border-gray-300 text-gray-600'
+              }`}>
+                <input type="radio" value={method} {...register('payment_method')} className="sr-only" />
                 {method}
               </label>
             ))}
           </div>
 
           {paymentMethod === 'EFECTIVO' && (
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-gray-100">
+              <Controller control={control} name="cash_amount"
+                render={({ field }) => (
+                  <Input label="Efectivo recibido" value={field.value} onChange={field.onChange} placeholder="0" />
+                )} />
               <div>
-                <label className="label-field">Efectivo recibido</label>
-                <Controller
-                  control={control}
-                  name="cash_amount"
-                  render={({ field }) => (
-                    <FormattedNumberInput
-                      value={field.value}
-                      onChange={field.onChange}
-                      className="input-field"
-                      placeholder="0"
-                    />
-                  )}
-                />
-              </div>
-              <div>
-                <label className="label-field">Cambio</label>
-                <div className="input-field bg-gray-50 text-gray-700 font-semibold">
-                  {formatCurrency(
-                    (watch('cash_amount') || 0) > total
-                      ? (watch('cash_amount') || 0) - total
-                      : 0
-                  )}
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Cambio</label>
+                <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900">
+                  {formatCurrency((watch('cash_amount') || 0) > total ? (watch('cash_amount') || 0) - total : 0)}
                 </div>
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
-        <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Resumen</h2>
+        <Card>
+          <CardTitle className="mb-4">Resumen</CardTitle>
           <div className="space-y-3">
-            <div className="flex justify-between text-gray-600">
+            <div className="flex justify-between text-sm text-gray-600">
               <span>Subtotal</span>
-              <span className="font-medium">{formatCurrency(subtotal)}</span>
+              <span className="font-medium text-gray-900">{formatCurrency(subtotal)}</span>
             </div>
             <div>
-              <label className="label-field">Descuento</label>
-              <Controller
-                control={control}
-                name="discount"
+              <Controller control={control} name="discount"
                 render={({ field }) => (
-                  <FormattedNumberInput
-                    value={field.value}
-                    onChange={field.onChange}
-                    className="input-field"
-                    placeholder="0"
-                  />
-                )}
-              />
+                  <Input label="Descuento" value={field.value} onChange={field.onChange} placeholder="0" />
+                )} />
             </div>
             <div className="border-t border-gray-200 pt-3 flex justify-between">
-              <span className="text-lg font-bold text-gray-900">TOTAL</span>
-              <span className="text-lg font-bold text-primary-600">
-                {formatCurrency(total)}
-              </span>
+              <span className="text-base font-bold text-gray-900">TOTAL</span>
+              <span className="text-base font-bold text-blue-600">{formatCurrency(total)}</span>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={createMutation.isPending}
-            className="btn-primary w-full mt-6 flex items-center justify-center gap-2"
-          >
+          <Button type="submit" disabled={createMutation.isPending} className="w-full mt-5" size="lg">
             {createMutation.isPending ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generando...
-              </>
+              <><Loader2 className="w-4 h-4 animate-spin" /> Generando...</>
             ) : (
-              <>
-                <FileText className="w-4 h-4" />
-                Generar Factura
-              </>
+              <><FileText className="w-4 h-4" /> Generar Factura</>
             )}
-          </button>
-        </div>
+          </Button>
+        </Card>
       </div>
     </form>
   )

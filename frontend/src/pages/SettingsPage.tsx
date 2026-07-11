@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Save, Upload } from 'lucide-react'
+import { Save, Upload, Building2, Image, Hash } from 'lucide-react'
 import api from '../services/api'
 import { Settings } from '../types'
+import { Card, CardTitle } from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+import PageHeader from '../components/ui/PageHeader'
+import Loader from '../components/ui/Loader'
 
 export default function SettingsPage() {
   const queryClient = useQueryClient()
@@ -25,12 +30,8 @@ export default function SettingsPage() {
   }, [settings])
 
   const updateMutation = useMutation({
-    mutationFn: (data: Partial<Settings>) =>
-      api.put('/settings/', { settings: data }),
-    onSuccess: () => {
-      toast.success('Configuración guardada')
-      queryClient.invalidateQueries({ queryKey: ['settings'] })
-    },
+    mutationFn: (data: Partial<Settings>) => api.put('/settings/', { settings: data }),
+    onSuccess: () => { toast.success('Configuración guardada'); queryClient.invalidateQueries({ queryKey: ['settings'] }) },
     onError: () => toast.error('Error al guardar configuración'),
   })
 
@@ -38,15 +39,9 @@ export default function SettingsPage() {
     mutationFn: (file: File) => {
       const formData = new FormData()
       formData.append('file', file)
-      return api.post('/settings/logo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      return api.post('/settings/logo', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
     },
-    onSuccess: () => {
-      toast.success('Logo actualizado')
-      setLogoPreview(`/api/settings/logo?t=${Date.now()}`)
-      queryClient.invalidateQueries({ queryKey: ['settings'] })
-    },
+    onSuccess: () => { toast.success('Logo actualizado'); setLogoPreview(`/api/settings/logo?t=${Date.now()}`); queryClient.invalidateQueries({ queryKey: ['settings'] }) },
     onError: () => toast.error('Error al subir logo'),
   })
 
@@ -67,150 +62,84 @@ export default function SettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
-  if (isLoading) {
-    return <div className="text-center py-12 text-gray-500">Cargando configuración...</div>
-  }
+  if (isLoading) return <Loader text="Cargando configuración..." fullPage />
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Datos de la Empresa</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <label className="label-field">Nombre de la empresa</label>
-            <input
-              value={form.company_name || ''}
-              onChange={(e) => updateField('company_name', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Eslogan</label>
-            <input
-              value={form.slogan || ''}
-              onChange={(e) => updateField('slogan', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">NIT</label>
-            <input
-              value={form.nit || ''}
-              onChange={(e) => updateField('nit', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Régimen</label>
-            <input
-              value={form.regime || ''}
-              onChange={(e) => updateField('regime', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Dirección</label>
-            <input
-              value={form.address || ''}
-              onChange={(e) => updateField('address', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Teléfono</label>
-            <input
-              value={form.phone || ''}
-              onChange={(e) => updateField('phone', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Correo electrónico</label>
-            <input
-              type="email"
-              value={form.email || ''}
-              onChange={(e) => updateField('email', e.target.value)}
-              className="input-field"
-            />
-          </div>
-        </div>
-        <div className="mt-4">
-          <label className="label-field">Pie de factura</label>
-          <textarea
-            value={form.footer || ''}
-            onChange={(e) => updateField('footer', e.target.value)}
-            className="input-field"
-            rows={4}
-          />
-        </div>
-      </div>
+    <div className="max-w-4xl mx-auto">
+      <PageHeader
+        title="Configuración"
+        description="Administra los datos de tu empresa y preferencias"
+      />
 
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Logo</h2>
-        <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
-          <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden bg-gray-50">
-            {logoPreview ? (
-              <img
-                src={logoPreview.startsWith('blob:') || logoPreview.startsWith('data:') ? logoPreview : `/api/settings/logo?t=${Date.now()}`}
-                alt="Logo"
-                className="max-w-full max-h-full object-contain"
-              />
-            ) : (
-              <Upload className="w-8 h-8 text-gray-400" />
-            )}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Card>
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-blue-600" />
+            </div>
+            <CardTitle>Datos de la Empresa</CardTitle>
           </div>
-          <div>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleLogoChange}
-              className="hidden"
-              id="logo-upload"
-            />
-            <label htmlFor="logo-upload" className="btn-secondary cursor-pointer inline-block">
-              Seleccionar imagen
-            </label>
-            <p className="text-xs text-gray-500 mt-2">PNG, JPG. Max 2MB</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Nombre de la empresa" value={form.company_name || ''} onChange={(e) => updateField('company_name', e.target.value)} placeholder="Nombre de la empresa" />
+            <Input label="Eslogan" value={form.slogan || ''} onChange={(e) => updateField('slogan', e.target.value)} placeholder="Tu eslogan" />
+            <Input label="NIT" value={form.nit || ''} onChange={(e) => updateField('nit', e.target.value)} placeholder="NIT" />
+            <Input label="Régimen" value={form.regime || ''} onChange={(e) => updateField('regime', e.target.value)} placeholder="Régimen tributario" />
+            <Input label="Dirección" value={form.address || ''} onChange={(e) => updateField('address', e.target.value)} placeholder="Dirección" />
+            <Input label="Teléfono" value={form.phone || ''} onChange={(e) => updateField('phone', e.target.value)} placeholder="Teléfono" />
+            <Input label="Correo electrónico" type="email" value={form.email || ''} onChange={(e) => updateField('email', e.target.value)} placeholder="correo@empresa.com" />
           </div>
-        </div>
-      </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pie de factura</label>
+            <textarea value={form.footer || ''} onChange={(e) => updateField('footer', e.target.value)} rows={3}
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none" placeholder="Texto que aparece al pie de la factura" />
+          </div>
+        </Card>
 
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Numeración</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <label className="label-field">Prefijo</label>
-            <input
-              value={form.invoice_prefix || ''}
-              readOnly
-              className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
-              placeholder="001"
-            />
-            <p className="text-xs text-gray-400 mt-1">Se establece al crear la primera factura</p>
+        <Card>
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Image className="w-4 h-4 text-blue-600" />
+            </div>
+            <CardTitle>Logo</CardTitle>
           </div>
-          <div>
-            <label className="label-field">Consecutivo actual</label>
-            <input
-              type="text"
-              value={form.invoice_consecutive || 1}
-              readOnly
-              className="input-field bg-gray-50 text-gray-500 cursor-not-allowed"
-            />
-            <p className="text-xs text-gray-400 mt-1">Se incrementa automáticamente</p>
+          <div className="flex flex-col sm:flex-row items-center gap-5">
+            <div className="w-28 h-28 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center overflow-hidden bg-gray-50">
+              {logoPreview ? (
+                <img src={logoPreview.startsWith('blob:') ? logoPreview : `/api/settings/logo?t=${Date.now()}`} alt="Logo" className="max-w-full max-h-full object-contain p-2" />
+              ) : (
+                <Upload className="w-8 h-8 text-gray-300" />
+              )}
+            </div>
+            <div>
+              <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" id="logo-upload" />
+              <label htmlFor="logo-upload" className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium bg-white text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                <Upload className="w-4 h-4 mr-2" />
+                Seleccionar imagen
+              </label>
+              <p className="text-xs text-gray-400 mt-2">PNG, JPG. Max 2MB</p>
+            </div>
           </div>
-        </div>
-      </div>
+        </Card>
 
-      <div className="flex justify-end">
-        <button
-          type="submit"
-          disabled={updateMutation.isPending}
-          className="btn-primary flex items-center gap-2"
-        >
-          <Save className="w-4 h-4" />
-          {updateMutation.isPending ? 'Guardando...' : 'Guardar Configuración'}
-        </button>
-      </div>
-    </form>
+        <Card>
+          <div className="flex items-center gap-2 mb-5">
+            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Hash className="w-4 h-4 text-blue-600" />
+            </div>
+            <CardTitle>Numeración</CardTitle>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Input label="Prefijo" value={form.invoice_prefix || ''} readOnly className="bg-gray-50 text-gray-500 cursor-not-allowed" hint="Se establece al crear la primera factura" />
+            <Input label="Consecutivo actual" value={String(form.invoice_consecutive || 1)} readOnly className="bg-gray-50 text-gray-500 cursor-not-allowed" hint="Se incrementa automáticamente" />
+          </div>
+        </Card>
+
+        <div className="flex justify-end">
+          <Button type="submit" variant="primary" icon={<Save className="w-4 h-4" />} loading={updateMutation.isPending}>
+            Guardar Configuración
+          </Button>
+        </div>
+      </form>
+    </div>
   )
 }
