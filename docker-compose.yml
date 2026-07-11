@@ -1,0 +1,15 @@
+services:
+  facturacion:
+    build: .
+    container_name: facturacion-pos
+    ports:
+      - "8000:8000"
+    volumes:
+      - facturacion-data:/app/data
+    environment:
+      - DATA_DIR=/app/data
+    restart: unless-stopped
+
+volumes:
+  facturacion-data:
+    driver: local
