@@ -2,12 +2,13 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
-  Plus,
   Search,
   Edit2,
   Trash2,
   X,
   UserPlus,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import api from '../services/api'
 import { Client, DOCUMENT_TYPES } from '../types'
@@ -16,6 +17,7 @@ import { useDebounce } from '../hooks/useDebounce'
 export default function ClientsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [showModal, setShowModal] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [form, setForm] = useState({
@@ -26,14 +28,24 @@ export default function ClientsPage() {
     phone: '',
     email: '',
   })
+  const pageSize = 10
 
   const debouncedSearch = useDebounce(search, 300)
 
-  const { data: clients, isLoading } = useQuery({
-    queryKey: ['clients', debouncedSearch],
-    queryFn: () =>
-      api.get(`/clients/?search=${encodeURIComponent(debouncedSearch)}`).then((r) => r.data),
+  const { data, isLoading } = useQuery({
+    queryKey: ['clients', debouncedSearch, page],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (debouncedSearch) params.set('search', debouncedSearch)
+      params.set('page', page.toString())
+      params.set('page_size', pageSize.toString())
+      return api.get(`/clients/?${params}`).then((r) => r.data)
+    },
   })
+
+  const clients: Client[] = data?.items || []
+  const totalItems = data?.total || 0
+  const totalPages = Math.ceil(totalItems / pageSize)
 
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => api.post('/clients/', data),
@@ -118,7 +130,10 @@ export default function ClientsPage() {
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value)
+              setPage(1)
+            }}
             className="input-field pl-10"
             placeholder="Buscar clientes..."
           />
@@ -150,7 +165,7 @@ export default function ClientsPage() {
                     Cargando...
                   </td>
                 </tr>
-              ) : !clients || clients.length === 0 ? (
+              ) : clients.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-8 text-gray-500">
                     No se encontraron clientes
@@ -197,7 +212,7 @@ export default function ClientsPage() {
         <div className="md:hidden">
           {isLoading ? (
             <div className="text-center py-8 text-gray-500">Cargando...</div>
-          ) : !clients || clients.length === 0 ? (
+          ) : clients.length === 0 ? (
             <div className="text-center py-8 text-gray-500">No se encontraron clientes</div>
           ) : (
             <div className="divide-y divide-gray-100">
@@ -239,6 +254,33 @@ export default function ClientsPage() {
             </div>
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200">
+            <span className="text-sm text-gray-500">
+              {totalItems} clientes encontrados
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm text-gray-700">
+                {page} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-50"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {showModal && (

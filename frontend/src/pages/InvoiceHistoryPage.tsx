@@ -25,7 +25,7 @@ export default function InvoiceHistoryPage() {
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
-  const pageSize = 15
+  const pageSize = 10
 
   const debouncedSearch = useDebounce(search, 300)
 
