@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { FileText, Users, Settings, Receipt, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { FileText, Users, Settings, Receipt, Menu, X, Mail, Phone, MapPin } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import api from '../services/api'
 
 const navItems = [
   { to: '/', label: 'Nueva Factura', icon: FileText },
@@ -11,7 +12,14 @@ const navItems = [
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [hasLogo, setHasLogo] = useState(false)
   const location = useLocation()
+
+  useEffect(() => {
+    api.get('/settings/').then((r) => {
+      setHasLogo(!!r.data.logo_path)
+    }).catch(() => {})
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -23,15 +31,23 @@ export default function Layout() {
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out ${
+        className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out flex flex-col ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+        <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <Receipt className="w-5 h-5 text-white" />
-            </div>
+            {hasLogo ? (
+              <img
+                src={`/api/settings/logo?t=${Date.now()}`}
+                alt="Logo"
+                className="h-8 w-8 object-contain rounded"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
+                <Receipt className="w-5 h-5 text-white" />
+              </div>
+            )}
             <span className="font-bold text-gray-900 text-lg">FacturaPos</span>
           </div>
           <button
@@ -42,7 +58,7 @@ export default function Layout() {
           </button>
         </div>
 
-        <nav className="mt-6 px-3">
+        <nav className="mt-6 px-3 flex-shrink-0">
           {navItems.map((item) => {
             const Icon = item.icon
             const isActive = location.pathname === item.to ||
@@ -64,6 +80,32 @@ export default function Layout() {
             )
           })}
         </nav>
+
+        <div className="mt-auto border-t border-gray-200 px-5 py-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 bg-primary-600 rounded flex items-center justify-center">
+              <Receipt className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span className="font-bold text-gray-900 text-sm">MuxyGo</span>
+          </div>
+          <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+            Transformamos ideas en soluciones tecnológicas robustas. Tu socio estratégico para el crecimiento digital.
+          </p>
+          <div className="space-y-1.5">
+            <a href="mailto:comercial@muxygo.com" className="flex items-center gap-2 text-xs text-gray-500 hover:text-primary-600 transition-colors">
+              <Mail className="w-3 h-3" />
+              comercial@muxygo.com
+            </a>
+            <a href="tel:+573142585911" className="flex items-center gap-2 text-xs text-gray-500 hover:text-primary-600 transition-colors">
+              <Phone className="w-3 h-3" />
+              +57 314 258 5911
+            </a>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              Sogamoso, Boyacá, Colombia
+            </div>
+          </div>
+        </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">

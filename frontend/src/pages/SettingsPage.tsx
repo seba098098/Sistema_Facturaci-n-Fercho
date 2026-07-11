@@ -8,7 +8,6 @@ import { Settings } from '../types'
 export default function SettingsPage() {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<Partial<Settings>>({})
-  const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoPreview, setLogoPreview] = useState<string>('')
 
   const { data: settings, isLoading } = useQuery({
@@ -20,7 +19,7 @@ export default function SettingsPage() {
     if (settings) {
       setForm(settings)
       if (settings.logo_path) {
-        setLogoPreview(settings.logo_path)
+        setLogoPreview(`/api/settings/logo?t=${Date.now()}`)
       }
     }
   }, [settings])
@@ -45,6 +44,7 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       toast.success('Logo actualizado')
+      setLogoPreview(`/api/settings/logo?t=${Date.now()}`)
       queryClient.invalidateQueries({ queryKey: ['settings'] })
     },
     onError: () => toast.error('Error al subir logo'),
@@ -52,18 +52,14 @@ export default function SettingsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const dataToSave = { ...form }
-    if (logoFile) {
-      uploadLogoMutation.mutate(logoFile)
-    }
-    updateMutation.mutate(dataToSave)
+    updateMutation.mutate({ ...form })
   }
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setLogoFile(file)
       setLogoPreview(URL.createObjectURL(file))
+      uploadLogoMutation.mutate(file)
     }
   }
 
@@ -155,7 +151,7 @@ export default function SettingsPage() {
           <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center overflow-hidden bg-gray-50">
             {logoPreview ? (
               <img
-                src={logoPreview.startsWith('/') ? logoPreview : `/api${logoPreview}`}
+                src={logoPreview.startsWith('blob:') || logoPreview.startsWith('data:') ? logoPreview : `/api/settings/logo?t=${Date.now()}`}
                 alt="Logo"
                 className="max-w-full max-h-full object-contain"
               />
@@ -202,68 +198,6 @@ export default function SettingsPage() {
               className="input-field"
               min="1"
             />
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Configuración SMTP</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="label-field">Servidor SMTP</label>
-            <input
-              value={form.smtp_host || ''}
-              onChange={(e) => updateField('smtp_host', e.target.value)}
-              className="input-field"
-              placeholder="smtp.gmail.com"
-            />
-          </div>
-          <div>
-            <label className="label-field">Puerto</label>
-            <input
-              type="number"
-              value={form.smtp_port || 587}
-              onChange={(e) => updateField('smtp_port', parseInt(e.target.value) || 587)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Usuario</label>
-            <input
-              value={form.smtp_user || ''}
-              onChange={(e) => updateField('smtp_user', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label className="label-field">Contraseña</label>
-            <input
-              type="password"
-              value={form.smtp_password || ''}
-              onChange={(e) => updateField('smtp_password', e.target.value)}
-              className="input-field"
-              placeholder="••••••••"
-            />
-          </div>
-          <div>
-            <label className="label-field">Correo remitente</label>
-            <input
-              type="email"
-              value={form.smtp_from || ''}
-              onChange={(e) => updateField('smtp_from', e.target.value)}
-              className="input-field"
-            />
-          </div>
-          <div className="flex items-end">
-            <label className="flex items-center gap-2 cursor-pointer pb-2">
-              <input
-                type="checkbox"
-                checked={form.smtp_use_tls ?? true}
-                onChange={(e) => updateField('smtp_use_tls', e.target.checked)}
-                className="w-4 h-4 text-primary-600 rounded"
-              />
-              <span className="text-sm text-gray-700">Usar TLS</span>
-            </label>
           </div>
         </div>
       </div>

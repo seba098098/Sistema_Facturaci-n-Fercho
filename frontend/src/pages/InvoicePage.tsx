@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, Controller } from 'react-hook-form'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { Plus, Trash2, Search, FileText, Loader2 } from 'lucide-react'
@@ -7,6 +7,7 @@ import api from '../services/api'
 import { Client, PAYMENT_METHODS, DOCUMENT_TYPES } from '../types'
 import { formatCurrency } from '../utils/format'
 import { useDebounce } from '../hooks/useDebounce'
+import FormattedNumberInput from '../components/FormattedNumberInput'
 
 interface InvoiceForm {
   client_document_type: string
@@ -281,15 +282,18 @@ export default function InvoicePage() {
                   />
                 </div>
                 <div className="col-span-2">
-                  <input
-                    type="number"
-                    min="0"
-                    step="100"
-                    {...register(`items.${index}.unit_price`, {
-                      valueAsNumber: true,
-                      min: 0,
-                    })}
-                    className="input-field text-right"
+                  <Controller
+                    control={control}
+                    name={`items.${index}.unit_price`}
+                    rules={{ min: 0 }}
+                    render={({ field }) => (
+                      <FormattedNumberInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        className="input-field text-right"
+                        placeholder="0"
+                      />
+                    )}
                   />
                 </div>
                 <div className="col-span-2 text-right font-medium text-gray-900 pr-1">
@@ -340,13 +344,17 @@ export default function InvoicePage() {
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
                 <label className="label-field">Efectivo recibido</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="100"
-                  {...register('cash_amount', { valueAsNumber: true })}
-                  className="input-field"
-                  placeholder="0"
+                <Controller
+                  control={control}
+                  name="cash_amount"
+                  render={({ field }) => (
+                    <FormattedNumberInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      className="input-field"
+                      placeholder="0"
+                    />
+                  )}
                 />
               </div>
               <div>
@@ -372,13 +380,17 @@ export default function InvoicePage() {
             </div>
             <div>
               <label className="label-field">Descuento</label>
-              <input
-                type="number"
-                min="0"
-                step="100"
-                {...register('discount', { valueAsNumber: true })}
-                className="input-field"
-                placeholder="0"
+              <Controller
+                control={control}
+                name="discount"
+                render={({ field }) => (
+                  <FormattedNumberInput
+                    value={field.value}
+                    onChange={field.onChange}
+                    className="input-field"
+                    placeholder="0"
+                  />
+                )}
               />
             </div>
             <div className="border-t border-gray-200 pt-3 flex justify-between">
