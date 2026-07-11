@@ -1,6 +1,7 @@
 import os
 import shutil
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -42,6 +43,19 @@ def update_settings(data: BulkSettingsUpdate, db: Session = Depends(get_db)):
     filtered = {k: v for k, v in data.settings.items() if k != "smtp_password" or v}
     service.update_many(filtered)
     return {"message": "Configuración actualizada"}
+
+
+@router.get("/logo")
+def get_logo(db: Session = Depends(get_db)):
+    service = SettingsService(db)
+    logo_path = service.get("logo_path")
+    if not logo_path or not os.path.exists(logo_path):
+        default = os.path.join(settings.DATA_DIR, "logos", "logo.png")
+        if os.path.exists(default):
+            logo_path = default
+    if not logo_path or not os.path.exists(logo_path):
+        raise HTTPException(status_code=404, detail="Logo no encontrado")
+    return FileResponse(logo_path, media_type="image/png")
 
 
 @router.post("/logo")

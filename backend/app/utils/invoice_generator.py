@@ -272,18 +272,22 @@ class InvoiceGenerator:
         img.save(path, "PNG")
 
     def generate_pdf(self, path: str):
+        SCALE = 4
+        hi_w = TICKET_WIDTH_PX * SCALE
         plan = self._build_plan()
-        height = self._calc_height(plan)
-        w_pt = TICKET_WIDTH_MM * 2.83465
-        h_pt = height * (w_pt / TICKET_WIDTH_PX)
+        height_px = self._calc_height(plan)
+        hi_h = height_px * SCALE
 
-        img = Image.new("RGB", (TICKET_WIDTH_PX, height), WHITE)
+        img = Image.new("RGB", (hi_w, hi_h), WHITE)
         draw = ImageDraw.Draw(img)
-        self._execute_plan_pil(draw, plan, img)
+        self._execute_plan_pil(draw, plan, img, scale=SCALE)
 
         buf = BytesIO()
-        img.save(buf, "PNG")
+        img.save(buf, "PNG", dpi=(480, 480))
         buf.seek(0)
+
+        w_pt = TICKET_WIDTH_MM * 2.83465
+        h_pt = hi_h * (w_pt / hi_w)
 
         os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
         c = canvas.Canvas(path, pagesize=(w_pt, h_pt))
@@ -295,94 +299,116 @@ class InvoiceGenerator:
     # PIL EXECUTOR
     # ----------------------------------------------------------
 
-    def _execute_plan_pil(self, draw: ImageDraw.ImageDraw, plan: list, img: Image.Image = None):
+    def _execute_plan_pil(self, draw: ImageDraw.ImageDraw, plan: list, img: Image.Image = None, scale: int = 1):
+        img_w = img.width if img else TICKET_WIDTH_PX
+        margin = MARGIN_PX * scale
+
+        def s(val):
+            return val * scale
+
+        def get_scaled_font(fs):
+            return _get_font(fs * scale)
+
         y = 0
         for op, data, fs in plan:
             if op == "margin":
-                y += data
+                y += s(data)
                 continue
 
             if op == "logo":
                 if self._logo_cache:
                     lw, lh = self._logo_cache.size
-                    x_logo = (TICKET_WIDTH_PX - lw) // 2
+                    x_logo = (img_w - lw * scale) // 2
                     logo_rgb = self._logo_cache.convert("RGB")
-                    img.paste(logo_rgb, (x_logo, y))
-                    y += lh
+                    logo_scaled = logo_rgb.resize((lw * scale, lh * scale), Image.LANCZOS)
+                    img.paste(logo_scaled, (x_logo, y))
+                    y += lh * scale
                 continue
 
             if op == "qr":
                 if self._qr_cache:
                     qr_w, qr_h = self._qr_cache.size
-                    x_qr = (TICKET_WIDTH_PX - qr_w) // 2
-                    y += self._lh(FONT_SIZE_SMALL)
+                    x_qr = (img_w - qr_w * scale) // 2
+                    y += s(self._lh(fs))
                     qr_rgb = self._qr_cache.convert("RGB")
-                    img.paste(qr_rgb, (x_qr, y))
-                    y += qr_h
+                    qr_scaled = qr_rgb.resize((qr_w * scale, qr_h * scale), Image.LANCZOS)
+                    img.paste(qr_scaled, (x_qr, y))
+                    y += qr_h * scale
                 continue
 
-            font = _get_font(fs)
-            lh = self._lh(fs)
-            cw = self._cw(fs)
+            font = get_scaled_font(fs)
+            lh = s(self._lh(fs))
+            cw = s(self._cw(fs))
 
             if op == "centered":
                 if data:
-                    self._pil_centered(draw, y, str(data), font)
+                    self._pil_centered(draw, y, str(data), font, img_w)
                 y += lh
 
             elif op == "left":
                 if data:
-                    self._pil_left(draw, y, str(data), font)
+                    self._pil_left(draw, y, str(data), font, margin)
                 y += lh
 
             elif op == "separator":
-                n = (TICKET_WIDTH_PX - 2 * MARGIN_PX) // max(cw, 1)
+                n = (img_w - 2 * margin) // max(cw, 1)
                 sep = str(data) * max(n, 1)
-                self._pil_centered(draw, y, sep, font)
+                self._pil_centered(draw, y, sep, font, img_w)
                 y += lh
 
             elif op == "table_header":
-                self._pil_table_header(draw, y, font)
+                self._pil_table_header(draw, y, font, img_w, margin, cw)
                 y += lh
 
             elif op == "product_first":
                 cant, desc, total = data
-                self._pil_product_row(draw, y, cant, str(desc), total, font, first=True)
+                self._pil_product_row(draw, y, cant, str(desc), total, font, img_w, margin, cw, first=True)
                 y += lh
 
             elif op == "product_cont":
-                self._pil_product_row(draw, y, "", str(data), "", font, first=False)
+                self._pil_product_row(draw, y, "", str(data), "", font, img_w, margin, cw, first=False)
                 y += lh
 
             elif op == "total_line":
                 label, value = data
-                self._pil_total_line(draw, y, str(label), str(value), font)
+                self._pil_total_line(draw, y, str(label), str(value), font, img_w, margin)
                 y += lh
 
     # ----------------------------------------------------------
     # PIL DRAWING PRIMITIVES
     # ----------------------------------------------------------
 
-    def _pil_centered(self, draw, y: int, text: str, font):
+    def _pil_centered(self, draw, y: int, text: str, font, img_w: int = None):
+        if img_w is None:
+            img_w = TICKET_WIDTH_PX
         bb = draw.textbbox((0, 0), text, font=font)
         tw = bb[2] - bb[0]
-        x = (TICKET_WIDTH_PX - tw) // 2
+        x = (img_w - tw) // 2
         draw.text((x, y), text, font=font, fill=BLACK)
 
     def _pil_left(self, draw, y: int, text: str, font, x: int = None):
         if x is None:
-            x = MARGIN_PX
+            x = 0
         draw.text((x, y), text, font=font, fill=BLACK)
 
-    def _pil_right(self, draw, y: int, text: str, font):
+    def _pil_right(self, draw, y: int, text: str, font, img_w: int = None, margin: int = None):
+        if img_w is None:
+            img_w = TICKET_WIDTH_PX
+        if margin is None:
+            margin = MARGIN_PX
         bb = draw.textbbox((0, 0), text, font=font)
         tw = bb[2] - bb[0]
-        x = TICKET_WIDTH_PX - MARGIN_PX - tw
+        x = img_w - margin - tw
         draw.text((x, y), text, font=font, fill=BLACK)
 
-    def _pil_table_header(self, draw, y: int, font):
-        cw = self._cw(FONT_SIZE_NORMAL)
-        x_cant = MARGIN_PX
+    def _pil_table_header(self, draw, y: int, font, img_w: int = None, margin: int = None, cw: int = None):
+        if img_w is None:
+            img_w = TICKET_WIDTH_PX
+        if margin is None:
+            margin = MARGIN_PX
+        if cw is None:
+            cw = self._cw(FONT_SIZE_NORMAL)
+        x_cant = margin
         x_desc = x_cant + (COL_CANT + COL_GAP) * cw
         x_total_start = x_desc + (COL_DESC + COL_GAP) * cw
 
@@ -395,9 +421,14 @@ class InvoiceGenerator:
         x_total = x_total_start + COL_TOTAL * cw - tw
         draw.text((x_total, y), total_label, font=font, fill=BLACK)
 
-    def _pil_product_row(self, draw, y: int, cant, desc: str, total, font, first: bool):
-        cw = self._cw(FONT_SIZE_NORMAL)
-        x_cant = MARGIN_PX
+    def _pil_product_row(self, draw, y: int, cant, desc: str, total, font, img_w: int = None, margin: int = None, cw: int = None, first: bool = True):
+        if img_w is None:
+            img_w = TICKET_WIDTH_PX
+        if margin is None:
+            margin = MARGIN_PX
+        if cw is None:
+            cw = self._cw(FONT_SIZE_NORMAL)
+        x_cant = margin
         x_desc = x_cant + (COL_CANT + COL_GAP) * cw
         x_total_start = x_desc + (COL_DESC + COL_GAP) * cw
 
@@ -416,9 +447,9 @@ class InvoiceGenerator:
         else:
             draw.text((x_desc, y), desc, font=font, fill=BLACK)
 
-    def _pil_total_line(self, draw, y: int, label: str, value: str, font):
-        self._pil_left(draw, y, label, font)
-        self._pil_right(draw, y, value, font)
+    def _pil_total_line(self, draw, y: int, label: str, value: str, font, img_w: int = None, margin: int = None):
+        self._pil_left(draw, y, label, font, margin)
+        self._pil_right(draw, y, value, font, img_w, margin)
 
 
 # ============================================================
