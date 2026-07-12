@@ -91,22 +91,22 @@ export default function InvoiceDetailPage() {
 
             {/* Desktop */}
             <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm table-fixed">
                 <thead>
                   <tr className="border-b border-gray-100">
-                    <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Cant.</th>
+                    <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Cant.</th>
                     <th className="text-left py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
-                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">V. Unitario</th>
-                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-wider w-28">V. Unitario</th>
+                    <th className="text-right py-2 text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Total</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {invoice.items.map((item: any) => (
                     <tr key={item.id} className="hover:bg-gray-50/50">
-                      <td className="py-2.5 text-gray-900">{item.quantity}</td>
-                      <td className="py-2.5 text-gray-900 font-medium">{item.description}</td>
-                      <td className="py-2.5 text-right text-gray-600">{formatCurrency(item.unit_price)}</td>
-                      <td className="py-2.5 text-right font-semibold text-gray-900">{formatCurrency(item.total)}</td>
+                      <td className="py-2.5 text-gray-900 align-top">{item.quantity}</td>
+                      <td className="py-2.5 text-gray-900 font-medium whitespace-normal break-words align-top">{item.description}</td>
+                      <td className="py-2.5 text-right text-gray-600 whitespace-nowrap align-top">{formatCurrency(item.unit_price)}</td>
+                      <td className="py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap align-top">{formatCurrency(item.total)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -116,12 +116,12 @@ export default function InvoiceDetailPage() {
             {/* Mobile */}
             <div className="sm:hidden space-y-2">
               {invoice.items.map((item: any) => (
-                <div key={item.id} className="bg-gray-50 rounded-xl p-3 flex justify-between items-start">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-900 text-sm truncate">{item.description}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{item.quantity} x {formatCurrency(item.unit_price)}</p>
+                <div key={item.id} className="bg-gray-50 rounded-xl p-3">
+                  <div className="flex justify-between items-start gap-3">
+                    <p className="font-medium text-gray-900 text-sm break-words flex-1">{item.description}</p>
+                    <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">{formatCurrency(item.total)}</span>
                   </div>
-                  <span className="font-semibold text-gray-900 text-sm ml-3">{formatCurrency(item.total)}</span>
+                  <p className="text-xs text-gray-500 mt-1">{item.quantity} x {formatCurrency(item.unit_price)}</p>
                 </div>
               ))}
             </div>

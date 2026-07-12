@@ -58,7 +58,7 @@ export default function Modal({ open, onClose, title, children, footer, size = '
           {children}
         </div>
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-3 px-4 sm:px-6 py-4 border-t border-gray-100">
             {footer}
           </div>
         )}
