@@ -15,6 +15,8 @@ import FormattedNumberInput from '../components/FormattedNumberInput'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Badge from '../components/ui/Badge'
+import InvoiceConfirmModal from '../components/InvoiceConfirmModal'
+import InvoiceSuccessModal from '../components/InvoiceSuccessModal'
 
 interface InvoiceForm {
   client_document_type: string
@@ -54,6 +56,8 @@ export default function InvoicePage() {
   const [clientSearch, setClientSearch] = useState('')
   const [showClientDropdown, setShowClientDropdown] = useState(false)
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
+  const [pendingData, setPendingData] = useState<InvoiceForm | null>(null)
+  const [createdInvoice, setCreatedInvoice] = useState<{ id: number; invoice_number: string; total: number } | null>(null)
 
   const {
     register,
@@ -154,12 +158,16 @@ export default function InvoicePage() {
       })
     },
     onSuccess: (response) => {
-      toast.success(`Factura ${response.data.invoice_number} generada exitosamente`)
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
-      reset()
-      setSelectedClient(null)
+      setPendingData(null)
+      setCreatedInvoice({
+        id: response.data.id,
+        invoice_number: response.data.invoice_number,
+        total: response.data.total,
+      })
     },
     onError: (error: any) => {
+      setPendingData(null)
       toast.error(error.response?.data?.detail || 'Error al crear la factura')
     },
   })
@@ -172,7 +180,12 @@ export default function InvoicePage() {
         toast.error('Complete todos los campos de los productos'); return
       }
     }
-    createMutation.mutate(data)
+    setPendingData(data)
+  }
+
+  const handleConfirmGenerate = () => {
+    if (!pendingData) return
+    createMutation.mutate(pendingData)
   }
 
   return (
@@ -325,11 +338,12 @@ export default function InvoicePage() {
 
             <div className="p-5">
               {/* Desktop Table Header */}
-              <div className="hidden lg:grid grid-cols-[60px_1fr_160px_160px_40px] gap-3 text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+              <div className="hidden lg:grid grid-cols-[60px_1fr_120px_140px_120px_40px] gap-3 text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
                 <div>#</div>
                 <div>Descripción</div>
                 <div className="text-center">Cantidad</div>
                 <div className="text-right">V. Unitario</div>
+                <div className="text-right">Total</div>
                 <div></div>
               </div>
 
@@ -356,7 +370,7 @@ export default function InvoicePage() {
                       </div>
 
                       {/* Single set of inputs with responsive layout */}
-                      <div className="lg:grid lg:grid-cols-[60px_1fr_160px_160px_40px] lg:gap-3 lg:items-center lg:px-1 lg:py-1.5">
+                      <div className="lg:grid lg:grid-cols-[60px_1fr_120px_140px_120px_40px] lg:gap-3 lg:items-center lg:px-1 lg:py-1.5">
                         {/* Row number (desktop) */}
                         <div className="hidden lg:flex items-center">
                           <span className={`inline-flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold
@@ -398,6 +412,11 @@ export default function InvoicePage() {
                         </div>
 
                         {/* Delete (desktop) */}
+                        <div className="hidden lg:flex items-center justify-center">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {formatCurrency(itemTotal)}
+                          </span>
+                        </div>
                         <div className="hidden lg:flex items-center justify-center">
                           {fields.length > 1 && (
                             <button type="button" onClick={() => remove(index)}
@@ -451,6 +470,32 @@ export default function InvoicePage() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Modal */}
+      <InvoiceConfirmModal
+        open={pendingData !== null}
+        onClose={() => setPendingData(null)}
+        onConfirm={handleConfirmGenerate}
+        data={pendingData}
+        subtotal={subtotal}
+        total={total}
+        change={change}
+        loading={createMutation.isPending}
+      />
+
+      {/* Success Modal */}
+      <InvoiceSuccessModal
+        open={createdInvoice !== null}
+        onClose={() => {
+          setCreatedInvoice(null)
+          reset()
+          setSelectedClient(null)
+          toast.success(`Factura generada exitosamente`)
+        }}
+        invoiceId={createdInvoice?.id ?? null}
+        invoiceNumber={createdInvoice?.invoice_number ?? ''}
+        total={createdInvoice?.total ?? 0}
+      />
     </form>
   )
 }
