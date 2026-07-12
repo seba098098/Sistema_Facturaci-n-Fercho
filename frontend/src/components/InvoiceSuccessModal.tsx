@@ -46,13 +46,13 @@ export default function InvoiceSuccessModal({ open, onClose, invoiceId, invoiceN
     <Modal open={open} onClose={onClose} size="lg"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>Cerrar</Button>
           {invoiceId && (
             <Button variant="primary" icon={<Download className="w-4 h-4" />}
-              onClick={() => window.open(`/api/invoices/${invoiceId}/pdf`, '_blank')}>
+              onClick={() => { window.open(`/api/invoices/${invoiceId}/pdf`, '_blank'); onClose() }}>
               Descargar PDF
             </Button>
           )}
+          <Button variant="secondary" onClick={onClose}>Cerrar</Button>
         </>
       }>
       <div className="space-y-5">

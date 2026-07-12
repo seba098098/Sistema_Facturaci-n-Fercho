@@ -103,6 +103,8 @@ def create_invoice(data: InvoiceCreate, db: Session = Depends(get_db)):
             "id": invoice.id,
             "invoice_number": invoice.invoice_number,
             "total": invoice.total,
+            "email_sent": invoice.email_sent,
+            "email_error": invoice.email_error,
             "message": "Factura generada exitosamente",
         }
     except ValueError as e:
